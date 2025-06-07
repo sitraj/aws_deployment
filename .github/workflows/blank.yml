@@ -1,0 +1,34 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup SSH key
+      uses: webfactory/ssh-agent@v0.8.1
+      with:
+        ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+    - name: Deploy app to EC2
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          cd ~/app || git clone https://github.com/${{ github.repository }}.git ~/app
+          cd ~/app
+          git pull origin main
+          # Install dependencies and restart app depending on your stack
+          # For Node.js:
+          npm install
+          pm2 restart all || pm2 start index.js --name "app"
+          # For Python (if you use Flask with virtualenv):
+          # source venv/bin/activate
+          # pip install -r requirements.txt
+          # Restart your python app accordingly
+        EOF
