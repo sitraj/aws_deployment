@@ -24,11 +24,8 @@ jobs:
           cd ~/app
           git pull origin main
           # Install dependencies and restart app depending on your stack
-          # For Node.js:
-          npm install
-          pm2 restart all || pm2 start index.js --name "app"
           # For Python (if you use Flask with virtualenv):
-          # source venv/bin/activate
-          # pip install -r requirements.txt
+          source venv/bin/activate
+          pip install -r requirements.txt
           # Restart your python app accordingly
         EOF
