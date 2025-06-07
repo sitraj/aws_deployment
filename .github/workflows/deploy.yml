@@ -20,12 +20,32 @@ jobs:
     - name: Deploy app to EC2
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-          cd ~/app || git clone https://github.com/${{ github.repository }}.git ~/app
+          # Ensure app directory exists and pull the latest code
+          if [ ! -d ~/app ]; then
+            git clone https://github.com/${{ github.repository }}.git ~/app
+          fi
           cd ~/app
           git pull origin main
-          # Install dependencies and restart app depending on your stack
-          # For Python (if you use Flask with virtualenv):
+
+          # Ensure Python is available
+          command -v python3 || sudo apt update && sudo apt install -y python3 python3-venv python3-pip
+
+          # Set up virtual environment if not present
+          if [ ! -d "venv" ]; then
+            python3 -m venv venv
+          fi
+
+          # Activate virtual environment and install dependencies
           source venv/bin/activate
-          pip install -r requirements.txt
-          # Restart your python app accordingly
+          pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+
+          # Restart your Python app — replace this with your actual start/restart command
+          # Example for systemd:
+          # sudo systemctl restart myapp
+          
+          echo "✅ Deployment complete"
         EOF
+
