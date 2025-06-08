@@ -41,11 +41,11 @@ jobs:
               
               # Update package list
               echo "Updating package list..."
-              sudo -n apt-get update
+              sudo -n yum update -y
               
               # Install Docker
               echo "Installing Docker..."
-              sudo -n apt-get install -y docker.io
+              sudo -n amazon-linux-extras install docker -y
               
               # Start and enable Docker service
               echo "Starting Docker service..."
