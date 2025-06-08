@@ -27,9 +27,8 @@ jobs:
             cd ~/app
             git pull origin main
 
-            # Configure passwordless sudo for the user
-            echo "$USER ALL=(ALL) NOPASSWD: ALL" | sudo -n tee /etc/sudoers.d/$USER
-            sudo -n chmod 0440 /etc/sudoers.d/$USER
+            # Configure passwordless sudo for the user using sudo -i
+            sudo -i bash -c 'echo "$USER ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/$USER && chmod 0440 /etc/sudoers.d/$USER'
 
             # Debug: Check if Docker is installed
             echo "Checking Docker installation..."
@@ -41,24 +40,24 @@ jobs:
               
               # Update package list
               echo "Updating package list..."
-              sudo -n yum update -y
+              sudo yum update -y
               
               # Install Docker
               echo "Installing Docker..."
-              sudo -n amazon-linux-extras install docker -y
+              sudo amazon-linux-extras install docker -y
               
               # Start and enable Docker service
               echo "Starting Docker service..."
-              sudo -n systemctl start docker
-              sudo -n systemctl enable docker
+              sudo systemctl start docker
+              sudo systemctl enable docker
               
               # Create docker group if it doesn't exist
               echo "Setting up docker group..."
-              sudo -n groupadd docker || true
+              sudo groupadd docker || true
               
               # Add user to docker group
               echo "Adding user to docker group..."
-              sudo -n usermod -aG docker $USER
+              sudo usermod -aG docker $USER
               
               # Verify Docker installation
               echo "Verifying Docker installation..."
