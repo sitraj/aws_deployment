@@ -63,36 +63,19 @@ jobs:
               # Verify Docker installation
               echo "Verifying Docker installation..."
               docker --version || echo "Docker installation failed"
-              
-              # Apply group changes without requiring logout
-              echo "Applying group changes..."
-              newgrp docker << 'EONG'
-                # Stop and remove existing container if it exists
-                docker stop flask-app || true
-                docker rm flask-app || true
-
-                # Build and run new container
-                docker build -t flask-app .
-                docker run -d --name flask-app -p 8080:8080 flask-app
-
-                # Verify container is running
-                sleep 2
-                if docker ps | grep -q flask-app; then
-                  echo '✅ Docker container is running'
-                else
-                  echo '❌ Docker container failed to start'
-                  exit 1
-                fi
-              EONG
             fi
 
-            # If Docker is already installed, just run the container
-            echo "Running container..."
+            # Run container operations
+            echo "Running container operations..."
+            
+            # Stop and remove existing container if it exists
             docker stop flask-app || true
             docker rm flask-app || true
+
+            # Build and run new container
             docker build -t flask-app .
             docker run -d --name flask-app -p 8080:8080 flask-app
-            
+
             # Verify container is running
             sleep 2
             if docker ps | grep -q flask-app; then
