@@ -28,8 +28,8 @@ jobs:
             git pull origin main
 
             # Configure passwordless sudo for the user
-            echo "$USER ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/$USER
-            sudo chmod 0440 /etc/sudoers.d/$USER
+            echo "$USER ALL=(ALL) NOPASSWD: ALL" | sudo -n tee /etc/sudoers.d/$USER
+            sudo -n chmod 0440 /etc/sudoers.d/$USER
 
             # Debug: Check if Docker is installed
             echo "Checking Docker installation..."
@@ -41,24 +41,24 @@ jobs:
               
               # Update package list
               echo "Updating package list..."
-              sudo apt-get update
+              sudo -n apt-get update
               
               # Install Docker
               echo "Installing Docker..."
-              sudo apt-get install -y docker.io
+              sudo -n apt-get install -y docker.io
               
               # Start and enable Docker service
               echo "Starting Docker service..."
-              sudo systemctl start docker
-              sudo systemctl enable docker
+              sudo -n systemctl start docker
+              sudo -n systemctl enable docker
               
               # Create docker group if it doesn't exist
               echo "Setting up docker group..."
-              sudo groupadd docker || true
+              sudo -n groupadd docker || true
               
               # Add user to docker group
               echo "Adding user to docker group..."
-              sudo usermod -aG docker $USER
+              sudo -n usermod -aG docker $USER
               
               # Verify Docker installation
               echo "Verifying Docker installation..."
