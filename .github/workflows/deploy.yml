@@ -29,26 +29,26 @@ jobs:
 
             # Install Docker if not installed
             if ! command -v docker &> /dev/null; then
-              sudo -S apt-get update <<< $'${{ secrets.EC2_SUDO_PASSWORD }}'
-              sudo -S apt-get install -y docker.io <<< $'${{ secrets.EC2_SUDO_PASSWORD }}'
-              sudo -S systemctl start docker <<< $'${{ secrets.EC2_SUDO_PASSWORD }}'
-              sudo -S systemctl enable docker <<< $'${{ secrets.EC2_SUDO_PASSWORD }}'
-              sudo -S usermod -aG docker $USER <<< $'${{ secrets.EC2_SUDO_PASSWORD }}'
+              echo "${{ secrets.EC2_SUDO_PASSWORD }}" | sudo -S apt-get update
+              echo "${{ secrets.EC2_SUDO_PASSWORD }}" | sudo -S apt-get install -y docker.io
+              echo "${{ secrets.EC2_SUDO_PASSWORD }}" | sudo -S systemctl start docker
+              echo "${{ secrets.EC2_SUDO_PASSWORD }}" | sudo -S systemctl enable docker
+              echo "${{ secrets.EC2_SUDO_PASSWORD }}" | sudo -S usermod -aG docker $USER
               # Apply group changes without requiring logout
               newgrp docker
             fi
 
             # Stop and remove existing container if it exists
-            sudo -S docker stop flask-app || true <<< $'${{ secrets.EC2_SUDO_PASSWORD }}'
-            sudo -S docker rm flask-app || true <<< $'${{ secrets.EC2_SUDO_PASSWORD }}'
+            echo "${{ secrets.EC2_SUDO_PASSWORD }}" | sudo -S docker stop flask-app || true
+            echo "${{ secrets.EC2_SUDO_PASSWORD }}" | sudo -S docker rm flask-app || true
 
             # Build and run new container
-            sudo -S docker build -t flask-app . <<< $'${{ secrets.EC2_SUDO_PASSWORD }}'
-            sudo -S docker run -d --name flask-app -p 8080:8080 flask-app <<< $'${{ secrets.EC2_SUDO_PASSWORD }}'
+            echo "${{ secrets.EC2_SUDO_PASSWORD }}" | sudo -S docker build -t flask-app .
+            echo "${{ secrets.EC2_SUDO_PASSWORD }}" | sudo -S docker run -d --name flask-app -p 8080:8080 flask-app
 
             # Verify container is running
             sleep 2
-            if sudo -S docker ps | grep -q flask-app; then
+            if echo "${{ secrets.EC2_SUDO_PASSWORD }}" | sudo -S docker ps | grep -q flask-app; then
               echo "✅ Docker container is running"
             else
               echo "❌ Docker container failed to start"
