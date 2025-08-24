@@ -4,6 +4,7 @@ import logging
 import json
 import time
 from datetime import datetime
+from werkzeug.exceptions import HTTPException
 
 # Disable Werkzeug's default logging
 logging.getLogger('werkzeug').disabled = True
@@ -70,6 +71,37 @@ def log_response_info(response):
         'path': request.path
     })
     return response
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    """Log exceptions with structured format and return appropriate responses"""
+    if isinstance(e, HTTPException):
+        # Handle HTTP exceptions (404, 405, etc.) with proper status codes
+        logger.warning('HTTP exception', extra={
+            'exception_type': type(e).__name__,
+            'exception_message': str(e),
+            'path': request.path,
+            'method': request.method,
+            'status_code': e.code
+        })
+        return jsonify({
+            'error': e.description,
+            'status': 'error',
+            'status_code': e.code
+        }), e.code
+    else:
+        # Handle other exceptions as 500 errors
+        logger.error('Unhandled exception', extra={
+            'exception_type': type(e).__name__,
+            'exception_message': str(e),
+            'path': request.path,
+            'method': request.method
+        })
+        return jsonify({
+            'error': 'Internal server error',
+            'status': 'error',
+            'status_code': 500
+        }), 500
 
 @app.route('/')
 def hello():
