@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
 import os
 import logging
-from pythonjsonlogger import jsonlogger
+import json
 import time
 from datetime import datetime
 
@@ -9,12 +9,42 @@ from datetime import datetime
 logging.getLogger('werkzeug').disabled = True
 
 # Configure structured logging
+class JSONFormatter(logging.Formatter):
+    def format(self, record):
+        log_entry = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'level': record.levelname,
+            'name': record.name,
+            'message': record.getMessage()
+        }
+        # Add extra fields if they exist
+        if hasattr(record, 'method'):
+            log_entry['method'] = record.method
+        if hasattr(record, 'path'):
+            log_entry['path'] = record.path
+        if hasattr(record, 'remote_addr'):
+            log_entry['remote_addr'] = record.remote_addr
+        if hasattr(record, 'user_agent'):
+            log_entry['user_agent'] = record.user_agent
+        if hasattr(record, 'status_code'):
+            log_entry['status_code'] = record.status_code
+        if hasattr(record, 'content_length'):
+            log_entry['content_length'] = record.content_length
+        if hasattr(record, 'exception_type'):
+            log_entry['exception_type'] = record.exception_type
+        if hasattr(record, 'exception_message'):
+            log_entry['exception_message'] = record.exception_message
+        if hasattr(record, 'port'):
+            log_entry['port'] = record.port
+        if hasattr(record, 'environment'):
+            log_entry['environment'] = record.environment
+            
+        return json.dumps(log_entry)
+
 logger = logging.getLogger()
 logger.handlers.clear()  # Clear any existing handlers
 logHandler = logging.StreamHandler()
-formatter = jsonlogger.JsonFormatter(
-    fmt='%(timestamp)s %(level)s %(name)s %(message)s'
-)
+formatter = JSONFormatter()
 logHandler.setFormatter(formatter)
 logger.addHandler(logHandler)
 logger.setLevel(logging.INFO)
