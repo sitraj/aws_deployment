@@ -208,12 +208,15 @@ if [ "$CERTIFICATES_EXIST" = true ]; then
   sudo cp "$SSL_KEY_PATH" /tmp/ssl/key.pem
   sudo chmod 644 /tmp/ssl/cert.pem
   sudo chmod 600 /tmp/ssl/key.pem
+  sudo chown root:root /tmp/ssl/cert.pem
+  sudo chown root:root /tmp/ssl/key.pem
+  echo "✅ SSL certificates copied to /tmp/ssl/ with proper permissions"
   
   # Start container with HTTPS on port 443
   docker run -d --name flask-app \
     -p 443:443 \
-    -v /tmp/ssl/cert.pem:/app/cert.pem:ro \
-    -v /tmp/ssl/key.pem:/app/key.pem:ro \
+    -v "$SSL_CERT_PATH:/app/cert.pem:ro" \
+    -v "$SSL_KEY_PATH:/app/key.pem:ro" \
     -e FLASK_ENV=production \
     -e APP_NAME=flask-app \
     -e APP_VERSION=1.0.0 \
@@ -223,6 +226,7 @@ if [ "$CERTIFICATES_EXIST" = true ]; then
     -e HTTPS_ENABLED=true \
     -e SSL_CERT_PATH=/app/cert.pem \
     -e SSL_KEY_PATH=/app/key.pem \
+    --user root \
     flask-app
     
   echo "🌐 Application deployed on HTTPS (port 443)"
