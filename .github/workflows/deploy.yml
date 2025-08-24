@@ -51,6 +51,8 @@ jobs:
             else
               echo "📥 Updating repository..."
               cd ~/app
+              # Stash any local changes and pull
+              git stash -u
               git pull origin main
             fi
             
