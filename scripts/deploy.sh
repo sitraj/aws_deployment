@@ -88,8 +88,8 @@ install_certbot() {
     sudo yum install -y python3 python3-pip
     # Install certbot via pip (works on Amazon Linux 2)
     sudo pip3 install --upgrade pip
-    # Install older version of certbot compatible with Amazon Linux 2
-    sudo pip3 install "certbot<2.0.0" "urllib3<2.0.0"
+    # Install very specific versions compatible with OpenSSL 1.0.2k
+    sudo pip3 install "urllib3==1.26.18" "requests==2.28.2" "certbot==1.40.0" "acme==1.40.0"
     # Create symlink to make certbot available in PATH
     sudo ln -sf /usr/local/bin/certbot /usr/bin/certbot
     echo "✅ Certbot installed via pip (compatible version)"
