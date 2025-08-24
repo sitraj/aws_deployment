@@ -203,18 +203,17 @@ if [ "$CERTIFICATES_EXIST" = true ]; then
   
   # Copy certificates to a readable location (fix permission issues)
   echo "🔧 Setting up SSL certificates..."
-  sudo mkdir -p /home/ec2-user/ssl
-  sudo cp "$SSL_CERT_PATH" /home/ec2-user/ssl/cert.pem
-  sudo cp "$SSL_KEY_PATH" /home/ec2-user/ssl/key.pem
-  sudo chown ec2-user:ec2-user /home/ec2-user/ssl/*
-  sudo chmod 644 /home/ec2-user/ssl/cert.pem
-  sudo chmod 600 /home/ec2-user/ssl/key.pem
+  sudo mkdir -p /tmp/ssl
+  sudo cp "$SSL_CERT_PATH" /tmp/ssl/cert.pem
+  sudo cp "$SSL_KEY_PATH" /tmp/ssl/key.pem
+  sudo chmod 644 /tmp/ssl/cert.pem
+  sudo chmod 600 /tmp/ssl/key.pem
   
   # Start container with HTTPS on port 443
   docker run -d --name flask-app \
     -p 443:443 \
-    -v /home/ec2-user/ssl/cert.pem:/app/cert.pem:ro \
-    -v /home/ec2-user/ssl/key.pem:/app/key.pem:ro \
+    -v /tmp/ssl/cert.pem:/app/cert.pem:ro \
+    -v /tmp/ssl/key.pem:/app/key.pem:ro \
     -e FLASK_ENV=production \
     -e APP_NAME=flask-app \
     -e APP_VERSION=1.0.0 \
