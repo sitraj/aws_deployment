@@ -41,12 +41,32 @@ jobs:
             echo "Starting new container..."
             docker run -d --name flask-app -p 8080:8080 flask-app
 
+            # Wait for container to start
+            echo "Waiting for container to start..."
+            sleep 10
+
             # Verify container is running
-            sleep 2
             if docker ps | grep -q flask-app; then
               echo "✅ Docker container is running"
             else
               echo "❌ Docker container failed to start"
+              exit 1
+            fi
+
+            # Check container health
+            echo "Checking container health..."
+            if docker inspect --format='{{.State.Health.Status}}' flask-app | grep -q "healthy"; then
+              echo "✅ Container is healthy"
+            else
+              echo "⚠️ Container health check failed, but container is running"
+            fi
+
+            # Test health endpoint
+            echo "Testing health endpoint..."
+            if curl -f http://localhost:8080/health; then
+              echo "✅ Health endpoint is responding"
+            else
+              echo "❌ Health endpoint is not responding"
               exit 1
             fi
           EOF

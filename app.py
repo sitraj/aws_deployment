@@ -1,11 +1,21 @@
-from flask import Flask
+from flask import Flask, jsonify
+import os
 
 app = Flask(__name__)
 
 @app.route('/')
 def hello():
-    return "Hello, World from Python! This is to lear AWS deployment via GH Actions"
+    return 'Hello, World!'
+
+@app.route('/health')
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'service': 'flask-app',
+        'version': '1.0.0'
+    })
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port)
 
