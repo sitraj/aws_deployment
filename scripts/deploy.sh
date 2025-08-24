@@ -31,9 +31,15 @@ docker rm flask-app || true
 echo "🔨 Building new container..."
 docker build -t flask-app .
 
-# Check if domain is configured
+# Check if domain is configured and is a valid domain (not IP)
 if [ -z "$DOMAIN" ]; then
   echo "⚠️ No domain configured, deploying without SSL..."
+  echo "🔍 To enable HTTPS, set the DOMAIN environment variable"
+  DEPLOY_HTTPS=false
+elif [[ "$DOMAIN" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "⚠️ IP address detected: $DOMAIN"
+  echo "🔍 Let's Encrypt requires a domain name, not an IP address"
+  echo "🔍 Deploying without SSL (use HTTP on port 8080)"
   DEPLOY_HTTPS=false
 else
   echo "🌐 Domain configured: $DOMAIN"
