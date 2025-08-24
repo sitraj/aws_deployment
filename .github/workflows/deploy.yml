@@ -69,5 +69,18 @@ jobs:
               echo "❌ Health endpoint is not responding"
               exit 1
             fi
+
+            # Test metrics endpoint
+            echo "Testing metrics endpoint..."
+            if curl -f http://localhost:8080/metrics; then
+              echo "✅ Metrics endpoint is responding"
+            else
+              echo "❌ Metrics endpoint is not responding"
+              exit 1
+            fi
+
+            # Show recent logs
+            echo "Recent application logs:"
+            docker logs --tail 10 flask-app
           EOF
 
