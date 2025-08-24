@@ -39,8 +39,13 @@ if [ -z "$DOMAIN" ]; then
 elif [[ "$DOMAIN" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   echo "⚠️ IP address detected: $DOMAIN"
   echo "🔍 Let's Encrypt requires a domain name, not an IP address"
-  echo "🔍 Deploying without SSL (use HTTP on port 8080)"
-  DEPLOY_HTTPS=false
+  echo "🔍 Generating self-signed certificate for HTTPS access"
+  DEPLOY_HTTPS=true
+  
+  # Generate self-signed certificate for IP address
+  echo "🔐 Setting up self-signed SSL certificate..."
+  chmod +x scripts/generate_self_signed.sh
+  ./scripts/generate_self_signed.sh
 else
   echo "🌐 Domain configured: $DOMAIN"
   DEPLOY_HTTPS=true
@@ -241,8 +246,13 @@ echo "   - HTTPS Enabled: $CERTIFICATES_EXIST"
 echo "   - Container Status: Running"
 
 if [ "$CERTIFICATES_EXIST" = true ]; then
-  echo "   - Access URL: https://$DOMAIN"
-  echo "   - SSL Certificate: Auto-renewing (every 60 days)"
+  if [[ "$DOMAIN" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "   - Access URL: https://$DOMAIN"
+    echo "   - SSL Certificate: Self-signed (browsers will show security warning)"
+  else
+    echo "   - Access URL: https://$DOMAIN"
+    echo "   - SSL Certificate: Auto-renewing (every 60 days)"
+  fi
 else
   echo "   - Access URL: http://$EC2_HOST:8080"
   echo "   - SSL Certificate: Not configured"
