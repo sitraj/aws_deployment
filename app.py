@@ -250,27 +250,11 @@ if __name__ == '__main__':
         'environment': app_config.ENVIRONMENT,
         'app_name': app_config.APP_NAME,
         'version': app_config.APP_VERSION,
-        'https_enabled': HTTPS_ENABLED
+        'https_enabled': False  # Nginx handles HTTPS
     })
     
-    if HTTPS_ENABLED and SSL_CERT_PATH and SSL_KEY_PATH:
-        # Run with SSL
-        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        context.load_cert_chain(SSL_CERT_PATH, SSL_KEY_PATH)
-        
-        logger.info('Starting Flask app with HTTPS', extra={
-            'cert_path': SSL_CERT_PATH,
-            'key_path': SSL_KEY_PATH
-        })
-        
-        app.run(
-            host=app_config.HOST, 
-            port=443,  # Use standard HTTPS port
-            debug=app_config.DEBUG,
-            ssl_context=context
-        )
-    else:
-        # Run without SSL
-        logger.info('Starting Flask app with HTTP')
-        app.run(host=app_config.HOST, port=app_config.PORT, debug=app_config.DEBUG)
+    # Flask app always runs on HTTP (port 8080)
+    # Nginx handles HTTPS termination and proxies to Flask
+    logger.info('Starting Flask app with HTTP (Nginx handles HTTPS)')
+    app.run(host=app_config.HOST, port=app_config.PORT, debug=app_config.DEBUG)
 

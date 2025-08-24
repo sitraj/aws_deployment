@@ -84,15 +84,30 @@ install_certbot() {
   elif command -v yum &> /dev/null; then
     echo "📦 Using yum (Amazon Linux 2)"
     sudo yum update -y
-    # Install Python and pip for certbot installation
-    sudo yum install -y python3 python3-pip
-    # Install certbot via pip (works on Amazon Linux 2)
-    sudo pip3 install --upgrade pip
-    # Install very specific versions compatible with OpenSSL 1.0.2k
-    sudo pip3 install "urllib3==1.26.18" "requests==2.28.2" "certbot==1.40.0" "acme==1.40.0"
-    # Create symlink to make certbot available in PATH
-    sudo ln -sf /usr/local/bin/certbot /usr/bin/certbot
-    echo "✅ Certbot installed via pip (compatible version)"
+    
+    # Step 1: Enable EPEL & Amazon Extras
+    echo "🔧 Enabling EPEL repository..."
+    sudo amazon-linux-extras enable epel
+    sudo yum install -y epel-release
+    
+    # Step 2: Try snap installation (recommended)
+    echo "🔧 Installing snapd..."
+    if sudo yum install -y snapd; then
+      sudo systemctl enable --now snapd.socket
+      sudo ln -s /var/lib/snapd/snap /snap
+      
+      echo "🔧 Installing certbot via snap..."
+      sudo snap install core
+      sudo snap refresh core
+      sudo snap install --classic certbot
+      sudo ln -s /snap/bin/certbot /usr/bin/certbot
+      
+      echo "✅ Certbot installed via snap"
+    else
+      echo "⚠️ Snap installation failed, trying EPEL certbot..."
+      sudo yum install -y certbot python2-certbot-apache
+      echo "✅ Certbot installed via EPEL"
+    fi
   elif command -v dnf &> /dev/null; then
     echo "📦 Using dnf (Fedora/RHEL 8+)"
     sudo dnf update -y
