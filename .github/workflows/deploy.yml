@@ -117,6 +117,15 @@ jobs:
               exit 1
             fi
 
+            # Test security headers endpoint
+            echo "Testing security headers endpoint..."
+            if curl -f http://localhost:8080/security-headers; then
+              echo "✅ Security headers endpoint is responding"
+            else
+              echo "❌ Security headers endpoint is not responding"
+              exit 1
+            fi
+
             # Show recent logs
             echo "Recent application logs:"
             docker logs --tail 10 flask-app

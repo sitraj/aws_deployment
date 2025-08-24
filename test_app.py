@@ -59,6 +59,28 @@ class FlaskAppTestCase(unittest.TestCase):
         self.assertIn('cors_enabled', data)
         self.assertIn('timestamp', data)
 
+    def test_security_headers_endpoint(self):
+        """Test the security headers endpoint"""
+        response = self.app.get('/security-headers')
+        self.assertEqual(response.status_code, 200)
+        
+        data = json.loads(response.data)
+        self.assertEqual(data['message'], 'Security headers are active')
+        self.assertEqual(data['environment'], 'testing')
+        self.assertIn('timestamp', data)
+
+    def test_security_headers_present(self):
+        """Test that security headers are present in responses"""
+        response = self.app.get('/health')
+        
+        # Check for common security headers
+        self.assertIn('X-Content-Type-Options', response.headers)
+        self.assertEqual(response.headers['X-Content-Type-Options'], 'nosniff')
+        
+        # In testing environment, frame options should be SAMEORIGIN
+        self.assertIn('X-Frame-Options', response.headers)
+        self.assertEqual(response.headers['X-Frame-Options'], 'SAMEORIGIN')
+
     def test_nonexistent_endpoint(self):
         """Test 404 for non-existent endpoint"""
         response = self.app.get('/nonexistent')
@@ -170,6 +192,20 @@ class FlaskAppTestCase(unittest.TestCase):
             self.assertIn('timestamp', data)
         except json.JSONDecodeError:
             self.fail("Config endpoint should return valid JSON")
+
+    def test_security_headers_endpoint_structure(self):
+        """Test that security headers endpoint returns proper JSON structure"""
+        response = self.app.get('/security-headers')
+        self.assertEqual(response.status_code, 200)
+        
+        try:
+            data = json.loads(response.data)
+            self.assertIsInstance(data, dict)
+            self.assertIn('message', data)
+            self.assertIn('environment', data)
+            self.assertIn('timestamp', data)
+        except json.JSONDecodeError:
+            self.fail("Security headers endpoint should return valid JSON")
 
     def test_error_response_structure(self):
         """Test that error responses have consistent structure"""

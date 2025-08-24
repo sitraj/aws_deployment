@@ -6,6 +6,7 @@ import time
 from datetime import datetime
 from werkzeug.exceptions import HTTPException
 from config import config
+from flask_talisman import Talisman
 
 # Get configuration based on environment
 config_name = os.environ.get('FLASK_ENV', 'production')
@@ -57,6 +58,33 @@ logger.setLevel(getattr(logging, app_config.LOG_LEVEL))
 
 app = Flask(__name__)
 app.config.from_object(app_config)
+
+# Configure security headers based on environment
+if app_config.ENVIRONMENT == 'production':
+    # Production: Strict security headers
+    Talisman(
+        app,
+        content_security_policy={
+            'default-src': "'self'",
+            'script-src': "'self'",
+            'style-src': "'self'",
+            'img-src': "'self'",
+            'font-src': "'self'",
+        },
+        force_https=True,
+        strict_transport_security=True,
+        strict_transport_security_max_age=31536000,
+        frame_options='DENY'
+    )
+else:
+    # Development/Testing: Relaxed security headers
+    Talisman(
+        app,
+        content_security_policy=None,
+        force_https=False,
+        strict_transport_security=False,
+        frame_options='SAMEORIGIN'
+    )
 
 @app.before_request
 def log_request_info():
@@ -143,6 +171,16 @@ def get_config():
         'log_level': app_config.LOG_LEVEL,
         'health_check_enabled': app_config.HEALTH_CHECK_ENABLED,
         'cors_enabled': app_config.CORS_ENABLED,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
+@app.route('/security-headers')
+def get_security_headers():
+    """Get current security headers (for testing)"""
+    logger.info('Security headers requested')
+    return jsonify({
+        'message': 'Security headers are active',
+        'environment': app_config.ENVIRONMENT,
         'timestamp': datetime.utcnow().isoformat()
     })
 
