@@ -6,6 +6,7 @@ import os
 os.environ['FLASK_ENV'] = 'testing'
 os.environ['APP_NAME'] = 'test-app'
 os.environ['APP_VERSION'] = '1.0.0-test'
+os.environ['HTTPS_ENABLED'] = 'false'
 
 from app import app
 
@@ -57,6 +58,10 @@ class FlaskAppTestCase(unittest.TestCase):
         self.assertIn('log_level', data)
         self.assertIn('health_check_enabled', data)
         self.assertIn('cors_enabled', data)
+        self.assertIn('https_enabled', data)
+        self.assertIn('force_https', data)
+        self.assertIn('ssl_cert_path', data)
+        self.assertIn('ssl_key_path', data)
         self.assertIn('timestamp', data)
 
     def test_security_headers_endpoint(self):
@@ -67,6 +72,22 @@ class FlaskAppTestCase(unittest.TestCase):
         data = json.loads(response.data)
         self.assertEqual(data['message'], 'Security headers are active')
         self.assertEqual(data['environment'], 'testing')
+        self.assertIn('https_enabled', data)
+        self.assertIn('force_https', data)
+        self.assertIn('timestamp', data)
+
+    def test_ssl_status_endpoint(self):
+        """Test the SSL status endpoint"""
+        response = self.app.get('/ssl-status')
+        self.assertEqual(response.status_code, 200)
+        
+        data = json.loads(response.data)
+        self.assertIn('https_enabled', data)
+        self.assertIn('force_https', data)
+        self.assertIn('certificate_path', data)
+        self.assertIn('key_path', data)
+        self.assertIn('certificate_exists', data)
+        self.assertIn('key_exists', data)
         self.assertIn('timestamp', data)
 
     def test_security_headers_present(self):
@@ -189,6 +210,10 @@ class FlaskAppTestCase(unittest.TestCase):
             self.assertIn('log_level', data)
             self.assertIn('health_check_enabled', data)
             self.assertIn('cors_enabled', data)
+            self.assertIn('https_enabled', data)
+            self.assertIn('force_https', data)
+            self.assertIn('ssl_cert_path', data)
+            self.assertIn('ssl_key_path', data)
             self.assertIn('timestamp', data)
         except json.JSONDecodeError:
             self.fail("Config endpoint should return valid JSON")
@@ -203,9 +228,29 @@ class FlaskAppTestCase(unittest.TestCase):
             self.assertIsInstance(data, dict)
             self.assertIn('message', data)
             self.assertIn('environment', data)
+            self.assertIn('https_enabled', data)
+            self.assertIn('force_https', data)
             self.assertIn('timestamp', data)
         except json.JSONDecodeError:
             self.fail("Security headers endpoint should return valid JSON")
+
+    def test_ssl_status_endpoint_structure(self):
+        """Test that SSL status endpoint returns proper JSON structure"""
+        response = self.app.get('/ssl-status')
+        self.assertEqual(response.status_code, 200)
+        
+        try:
+            data = json.loads(response.data)
+            self.assertIsInstance(data, dict)
+            self.assertIn('https_enabled', data)
+            self.assertIn('force_https', data)
+            self.assertIn('certificate_path', data)
+            self.assertIn('key_path', data)
+            self.assertIn('certificate_exists', data)
+            self.assertIn('key_exists', data)
+            self.assertIn('timestamp', data)
+        except json.JSONDecodeError:
+            self.fail("SSL status endpoint should return valid JSON")
 
     def test_error_response_structure(self):
         """Test that error responses have consistent structure"""
@@ -259,6 +304,26 @@ class FlaskAppTestCase(unittest.TestCase):
         """Test slash path handling"""
         response = self.app.get('/')
         self.assertEqual(response.status_code, 200)
+
+    def test_https_configuration_in_testing(self):
+        """Test that HTTPS is disabled in testing environment"""
+        response = self.app.get('/config')
+        data = json.loads(response.data)
+        
+        # In testing environment, HTTPS should be disabled
+        self.assertFalse(data['https_enabled'])
+        self.assertFalse(data['force_https'])
+
+    def test_ssl_status_in_testing(self):
+        """Test SSL status in testing environment"""
+        response = self.app.get('/ssl-status')
+        data = json.loads(response.data)
+        
+        # In testing environment, SSL should be disabled
+        self.assertFalse(data['https_enabled'])
+        self.assertFalse(data['force_https'])
+        self.assertFalse(data['certificate_exists'])
+        self.assertFalse(data['key_exists'])
 
 if __name__ == '__main__':
     unittest.main()

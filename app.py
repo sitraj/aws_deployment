@@ -7,10 +7,12 @@ from datetime import datetime
 from werkzeug.exceptions import HTTPException
 from config import config
 from flask_talisman import Talisman
+import ssl
 
 # Get configuration based on environment
 config_name = os.environ.get('FLASK_ENV', 'production')
-app_config = config.get(config_name, config['default'])
+app_config_class = config.get(config_name, config['default'])
+app_config = app_config_class()  # Create an instance
 
 # Disable Werkzeug's default logging
 logging.getLogger('werkzeug').disabled = True
@@ -59,6 +61,24 @@ logger.setLevel(getattr(logging, app_config.LOG_LEVEL))
 app = Flask(__name__)
 app.config.from_object(app_config)
 
+# Check if HTTPS is actually configured
+HTTPS_ENABLED = os.environ.get('HTTPS_ENABLED', 'false').lower() == 'true'
+SSL_CERT_PATH = os.environ.get('SSL_CERT_PATH', None)
+SSL_KEY_PATH = os.environ.get('SSL_KEY_PATH', None)
+
+# Verify SSL certificate files exist if HTTPS is enabled
+if HTTPS_ENABLED:
+    if not SSL_CERT_PATH or not SSL_KEY_PATH:
+        logger.warning('HTTPS_ENABLED is true but SSL certificate paths are not provided')
+        HTTPS_ENABLED = False
+    elif not os.path.exists(SSL_CERT_PATH) or not os.path.exists(SSL_KEY_PATH):
+        logger.warning('SSL certificate files not found at specified paths')
+        HTTPS_ENABLED = False
+    else:
+        logger.info(f'SSL certificates found: {SSL_CERT_PATH}, {SSL_KEY_PATH}')
+
+FORCE_HTTPS = HTTPS_ENABLED and app_config.ENVIRONMENT == 'production'
+
 # Configure security headers based on environment
 if app_config.ENVIRONMENT == 'production':
     # Production: Strict security headers
@@ -71,9 +91,9 @@ if app_config.ENVIRONMENT == 'production':
             'img-src': "'self'",
             'font-src': "'self'",
         },
-        force_https=True,
-        strict_transport_security=True,
-        strict_transport_security_max_age=31536000,
+        force_https=FORCE_HTTPS,  # Only force HTTPS if actually configured
+        strict_transport_security=FORCE_HTTPS,  # Only HSTS if HTTPS is enabled
+        strict_transport_security_max_age=31536000 if FORCE_HTTPS else None,
         frame_options='DENY'
     )
 else:
@@ -171,6 +191,10 @@ def get_config():
         'log_level': app_config.LOG_LEVEL,
         'health_check_enabled': app_config.HEALTH_CHECK_ENABLED,
         'cors_enabled': app_config.CORS_ENABLED,
+        'https_enabled': HTTPS_ENABLED,
+        'force_https': FORCE_HTTPS,
+        'ssl_cert_path': SSL_CERT_PATH,
+        'ssl_key_path': SSL_KEY_PATH,
         'timestamp': datetime.utcnow().isoformat()
     })
 
@@ -181,15 +205,60 @@ def get_security_headers():
     return jsonify({
         'message': 'Security headers are active',
         'environment': app_config.ENVIRONMENT,
+        'https_enabled': HTTPS_ENABLED,
+        'force_https': FORCE_HTTPS,
         'timestamp': datetime.utcnow().isoformat()
     })
+
+@app.route('/ssl-status')
+def ssl_status():
+    """Get SSL certificate status"""
+    logger.info('SSL status requested')
+    
+    ssl_info = {
+        'https_enabled': HTTPS_ENABLED,
+        'force_https': FORCE_HTTPS,
+        'certificate_path': SSL_CERT_PATH,
+        'key_path': SSL_KEY_PATH,
+        'certificate_exists': False,
+        'key_exists': False,
+        'timestamp': datetime.utcnow().isoformat()
+    }
+    
+    if SSL_CERT_PATH:
+        ssl_info['certificate_exists'] = os.path.exists(SSL_CERT_PATH)
+    if SSL_KEY_PATH:
+        ssl_info['key_exists'] = os.path.exists(SSL_KEY_PATH)
+    
+    return jsonify(ssl_info)
 
 if __name__ == '__main__':
     logger.info('Starting Flask application', extra={
         'port': app_config.PORT,
         'environment': app_config.ENVIRONMENT,
         'app_name': app_config.APP_NAME,
-        'version': app_config.APP_VERSION
+        'version': app_config.APP_VERSION,
+        'https_enabled': HTTPS_ENABLED
     })
-    app.run(host=app_config.HOST, port=app_config.PORT, debug=app_config.DEBUG)
+    
+    if HTTPS_ENABLED and SSL_CERT_PATH and SSL_KEY_PATH:
+        # Run with SSL
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.load_cert_chain(SSL_CERT_PATH, SSL_KEY_PATH)
+        
+        logger.info('Starting Flask app with HTTPS', extra={
+            'cert_path': SSL_CERT_PATH,
+            'key_path': SSL_KEY_PATH
+        })
+        
+        app.run(
+            host=app_config.HOST, 
+            port=app_config.PORT, 
+            debug=app_config.DEBUG,
+            ssl_context=context
+        )
+    else:
+        # Run without SSL
+        logger.info('Starting Flask app with HTTP')
+        app.run(host=app_config.HOST, port=app_config.PORT, debug=app_config.DEBUG)
 
