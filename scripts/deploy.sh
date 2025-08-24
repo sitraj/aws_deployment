@@ -84,14 +84,12 @@ install_certbot() {
   elif command -v yum &> /dev/null; then
     echo "📦 Using yum (Amazon Linux 2)"
     sudo yum update -y
-    # Install snapd for Amazon Linux 2
-    sudo yum install -y snapd
-    sudo systemctl enable --now snapd.socket
-    sudo ln -s /var/lib/snapd/snap /snap
-    # Install certbot via snap (recommended for Amazon Linux 2)
-    sudo snap install --classic certbot
-    sudo ln -s /snap/bin/certbot /usr/bin/certbot
-    echo "✅ Certbot installed via snap"
+    # Install certbot-auto directly from Let's Encrypt (most reliable for Amazon Linux 2)
+    echo "🔧 Downloading certbot-auto..."
+    wget https://dl.eff.org/certbot-auto
+    chmod a+x certbot-auto
+    sudo mv certbot-auto /usr/local/bin/certbot
+    echo "✅ Certbot installed via certbot-auto"
   elif command -v dnf &> /dev/null; then
     echo "📦 Using dnf (Fedora/RHEL 8+)"
     sudo dnf update -y
