@@ -5,8 +5,12 @@ from pythonjsonlogger import jsonlogger
 import time
 from datetime import datetime
 
+# Disable Werkzeug's default logging
+logging.getLogger('werkzeug').disabled = True
+
 # Configure structured logging
 logger = logging.getLogger()
+logger.handlers.clear()  # Clear any existing handlers
 logHandler = logging.StreamHandler()
 formatter = jsonlogger.JsonFormatter(
     fmt='%(timestamp)s %(level)s %(name)s %(message)s'
@@ -54,7 +58,7 @@ def handle_exception(e):
 @app.route('/')
 def hello():
     logger.info('Hello endpoint called')
-    return 'Hello, World!'
+    return 'Hello, World!!!'
 
 @app.route('/health')
 def health_check():
@@ -82,5 +86,5 @@ if __name__ == '__main__':
         'environment': os.environ.get('FLASK_ENV', 'production')
     })
     port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=False)
 
