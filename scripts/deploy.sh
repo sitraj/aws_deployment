@@ -84,6 +84,8 @@ install_certbot() {
   elif command -v yum &> /dev/null; then
     echo "📦 Using yum (Amazon Linux/RHEL/CentOS)"
     sudo yum update -y
+    # Install EPEL repository for Amazon Linux 2
+    sudo yum install -y epel-release
     sudo yum install -y certbot
   elif command -v dnf &> /dev/null; then
     echo "📦 Using dnf (Fedora/RHEL 8+)"
@@ -95,8 +97,15 @@ install_certbot() {
     sudo ln -s /snap/bin/certbot /usr/bin/certbot
   else
     echo "❌ No supported package manager found"
-    echo "⚠️ Please install certbot manually and try again"
-    return 1
+    echo "🔧 Trying pip installation..."
+    if command -v pip3 &> /dev/null; then
+      sudo pip3 install certbot
+    elif command -v pip &> /dev/null; then
+      sudo pip install certbot
+    else
+      echo "⚠️ Please install certbot manually and try again"
+      return 1
+    fi
   fi
 }
 
