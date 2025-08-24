@@ -61,6 +61,34 @@ else
   CERTIFICATES_EXIST=false
 fi
 
+# Function to detect and install certbot
+install_certbot() {
+  echo "🔍 Detecting package manager..."
+  
+  # Detect the package manager
+  if command -v apt-get &> /dev/null; then
+    echo "📦 Using apt-get (Ubuntu/Debian)"
+    sudo apt-get update
+    sudo apt-get install -y certbot
+  elif command -v yum &> /dev/null; then
+    echo "📦 Using yum (Amazon Linux/RHEL/CentOS)"
+    sudo yum update -y
+    sudo yum install -y certbot
+  elif command -v dnf &> /dev/null; then
+    echo "📦 Using dnf (Fedora/RHEL 8+)"
+    sudo dnf update -y
+    sudo dnf install -y certbot
+  elif command -v snap &> /dev/null; then
+    echo "📦 Using snap"
+    sudo snap install --classic certbot
+    sudo ln -s /snap/bin/certbot /usr/bin/certbot
+  else
+    echo "❌ No supported package manager found"
+    echo "⚠️ Please install certbot manually and try again"
+    return 1
+  fi
+}
+
 # Attempt to generate SSL certificates if needed
 if [ "$DEPLOY_HTTPS" = true ] && [ "$CERTIFICATES_EXIST" = false ]; then
   echo "🔐 Attempting to generate SSL certificates..."
@@ -68,40 +96,53 @@ if [ "$DEPLOY_HTTPS" = true ] && [ "$CERTIFICATES_EXIST" = false ]; then
   # Install certbot if not already installed
   if ! command -v certbot &> /dev/null; then
     echo "📦 Installing certbot..."
-    sudo apt-get update
-    sudo apt-get install -y certbot
+    if ! install_certbot; then
+      echo "❌ Failed to install certbot"
+      echo "⚠️ Continuing deployment without SSL..."
+      CERTIFICATES_EXIST=false
+    fi
+  else
+    echo "✅ Certbot already installed"
   fi
 
-  # Create webroot directory for certificate verification
-  sudo mkdir -p /var/www/html/.well-known/acme-challenge
-  sudo chown -R www-data:www-data /var/www/html
+  # Only proceed if certbot is available
+  if command -v certbot &> /dev/null; then
+    # Create webroot directory for certificate verification
+    sudo mkdir -p /var/www/html/.well-known/acme-challenge
+    sudo chown -R www-data:www-data /var/www/html 2>/dev/null || sudo chown -R nginx:nginx /var/www/html 2>/dev/null || true
 
-  # Stop any existing web server temporarily
-  sudo systemctl stop nginx 2>/dev/null || true
-  sudo systemctl stop apache2 2>/dev/null || true
+    # Stop any existing web server temporarily
+    sudo systemctl stop nginx 2>/dev/null || true
+    sudo systemctl stop apache2 2>/dev/null || true
+    sudo systemctl stop httpd 2>/dev/null || true
 
-  # Generate SSL certificate using standalone method
-  echo "🔐 Generating SSL certificate for $DOMAIN..."
-  if sudo certbot certonly --standalone --email="$EMAIL" --agree-tos --no-eff-email --domains="$DOMAIN" --non-interactive; then
-    echo "✅ SSL certificate generated successfully!"
-    CERTIFICATES_EXIST=true
-    
-    # Set proper permissions
-    sudo chmod 644 "$SSL_CERT_PATH"
-    sudo chmod 600 "$SSL_KEY_PATH"
-    
-    # Create renewal hook
-    sudo mkdir -p /etc/letsencrypt/renewal-hooks/post
-    sudo tee /etc/letsencrypt/renewal-hooks/post/restart-docker.sh > /dev/null << 'RENEWAL_HOOK'
+    # Generate SSL certificate using standalone method
+    echo "🔐 Generating SSL certificate for $DOMAIN..."
+    if sudo certbot certonly --standalone --email="$EMAIL" --agree-tos --no-eff-email --domains="$DOMAIN" --non-interactive; then
+      echo "✅ SSL certificate generated successfully!"
+      CERTIFICATES_EXIST=true
+      
+      # Set proper permissions
+      sudo chmod 644 "$SSL_CERT_PATH"
+      sudo chmod 600 "$SSL_KEY_PATH"
+      
+      # Create renewal hook
+      sudo mkdir -p /etc/letsencrypt/renewal-hooks/post
+      sudo tee /etc/letsencrypt/renewal-hooks/post/restart-docker.sh > /dev/null << 'RENEWAL_HOOK'
 #!/bin/bash
 echo "🔄 Restarting Docker container after certificate renewal..."
 docker restart flask-app 2>/dev/null || true
 echo "✅ Docker container restarted successfully"
 RENEWAL_HOOK
-    sudo chmod +x /etc/letsencrypt/renewal-hooks/post/restart-docker.sh
-    
+      sudo chmod +x /etc/letsencrypt/renewal-hooks/post/restart-docker.sh
+      
+    else
+      echo "❌ Failed to generate SSL certificate"
+      echo "⚠️ Continuing deployment without SSL..."
+      CERTIFICATES_EXIST=false
+    fi
   else
-    echo "❌ Failed to generate SSL certificate"
+    echo "❌ Certbot not available"
     echo "⚠️ Continuing deployment without SSL..."
     CERTIFICATES_EXIST=false
   fi
