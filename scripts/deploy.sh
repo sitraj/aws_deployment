@@ -161,11 +161,13 @@ if [ "$DEPLOY_HTTPS" = true ] && [ "$CERTIFICATES_EXIST" = false ]; then
     sudo systemctl stop apache2 2>/dev/null || true
     sudo systemctl stop httpd 2>/dev/null || true
 
-    # Generate SSL certificate using standalone method
+    # Generate SSL certificate using standalone method with specific Python environment
     echo "🔐 Generating SSL certificate for $DOMAIN..."
     # Use full path to certbot if available
     CERTBOT_CMD=$(which certbot 2>/dev/null || echo "/usr/local/bin/certbot")
-    if sudo "$CERTBOT_CMD" certonly --standalone --email="$EMAIL" --agree-tos --no-eff-email --domains="$DOMAIN" --non-interactive; then
+    
+    # Try to run certbot with Python 2.7 (more compatible with Amazon Linux 2)
+    if sudo python2.7 "$CERTBOT_CMD" certonly --standalone --email="$EMAIL" --agree-tos --no-eff-email --domains="$DOMAIN" --non-interactive 2>/dev/null || sudo "$CERTBOT_CMD" certonly --standalone --email="$EMAIL" --agree-tos --no-eff-email --domains="$DOMAIN" --non-interactive; then
       echo "✅ SSL certificate generated successfully!"
       CERTIFICATES_EXIST=true
       
