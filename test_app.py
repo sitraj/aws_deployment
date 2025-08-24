@@ -90,6 +90,18 @@ class FlaskAppTestCase(unittest.TestCase):
         self.assertIn('key_exists', data)
         self.assertIn('timestamp', data)
 
+    def test_force_https_test_endpoint(self):
+        """Test the force HTTPS test endpoint"""
+        response = self.app.get('/force-https-test')
+        self.assertEqual(response.status_code, 200)
+        
+        data = json.loads(response.data)
+        self.assertEqual(data['message'], 'This endpoint should only be accessible via HTTPS')
+        self.assertIn('protocol', data)
+        self.assertIn('https_enabled', data)
+        self.assertIn('force_https', data)
+        self.assertIn('timestamp', data)
+
     def test_security_headers_present(self):
         """Test that security headers are present in responses"""
         response = self.app.get('/health')
@@ -252,6 +264,22 @@ class FlaskAppTestCase(unittest.TestCase):
         except json.JSONDecodeError:
             self.fail("SSL status endpoint should return valid JSON")
 
+    def test_force_https_test_endpoint_structure(self):
+        """Test that force HTTPS test endpoint returns proper JSON structure"""
+        response = self.app.get('/force-https-test')
+        self.assertEqual(response.status_code, 200)
+        
+        try:
+            data = json.loads(response.data)
+            self.assertIsInstance(data, dict)
+            self.assertIn('message', data)
+            self.assertIn('protocol', data)
+            self.assertIn('https_enabled', data)
+            self.assertIn('force_https', data)
+            self.assertIn('timestamp', data)
+        except json.JSONDecodeError:
+            self.fail("Force HTTPS test endpoint should return valid JSON")
+
     def test_error_response_structure(self):
         """Test that error responses have consistent structure"""
         response = self.app.get('/nonexistent')
@@ -324,6 +352,15 @@ class FlaskAppTestCase(unittest.TestCase):
         self.assertFalse(data['force_https'])
         self.assertFalse(data['certificate_exists'])
         self.assertFalse(data['key_exists'])
+
+    def test_force_https_in_testing(self):
+        """Test force HTTPS in testing environment"""
+        response = self.app.get('/force-https-test')
+        data = json.loads(response.data)
+        
+        # In testing environment, HTTPS should be disabled
+        self.assertFalse(data['https_enabled'])
+        self.assertFalse(data['force_https'])
 
 if __name__ == '__main__':
     unittest.main()

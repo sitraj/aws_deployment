@@ -67,9 +67,8 @@ jobs:
             if [ -f "$SSL_CERT_PATH" ] && [ -f "$SSL_KEY_PATH" ]; then
               echo "✅ SSL certificates found, starting with HTTPS..."
               
-              # Start container with HTTPS
+              # Start container with HTTPS on port 443
               docker run -d --name flask-app \
-                -p 8080:8080 \
                 -p 443:443 \
                 -v "$SSL_CERT_PATH:/app/cert.pem:ro" \
                 -v "$SSL_KEY_PATH:/app/key.pem:ro" \
@@ -83,10 +82,12 @@ jobs:
                 -e SSL_CERT_PATH=/app/cert.pem \
                 -e SSL_KEY_PATH=/app/key.pem \
                 flask-app
+                
+              echo "🌐 Application running on HTTPS (port 443)"
             else
               echo "⚠️ SSL certificates not found, starting with HTTP..."
               
-              # Start container without HTTPS
+              # Start container without HTTPS on port 8080
               docker run -d --name flask-app \
                 -p 8080:8080 \
                 -e FLASK_ENV=production \
@@ -97,6 +98,8 @@ jobs:
                 -e CORS_ENABLED=false \
                 -e HTTPS_ENABLED=false \
                 flask-app
+                
+              echo "🌐 Application running on HTTP (port 8080)"
             fi
 
             # Wait for container to start
@@ -119,64 +122,110 @@ jobs:
               echo "⚠️ Container health check failed, but container is running"
             fi
 
-            # Test health endpoint
-            echo "Testing health endpoint..."
-            if curl -f http://localhost:8080/health; then
-              echo "✅ Health endpoint is responding"
-            else
-              echo "❌ Health endpoint is not responding"
-              exit 1
-            fi
-
-            # Test metrics endpoint
-            echo "Testing metrics endpoint..."
-            if curl -f http://localhost:8080/metrics; then
-              echo "✅ Metrics endpoint is responding"
-            else
-              echo "❌ Metrics endpoint is not responding"
-              exit 1
-            fi
-
-            # Test config endpoint
-            echo "Testing config endpoint..."
-            if curl -f http://localhost:8080/config; then
-              echo "✅ Config endpoint is responding"
-            else
-              echo "❌ Config endpoint is not responding"
-              exit 1
-            fi
-
-            # Test security headers endpoint
-            echo "Testing security headers endpoint..."
-            if curl -f http://localhost:8080/security-headers; then
-              echo "✅ Security headers endpoint is responding"
-            else
-              echo "❌ Security headers endpoint is not responding"
-              exit 1
-            fi
-
-            # Test SSL status endpoint
-            echo "Testing SSL status endpoint..."
-            if curl -f http://localhost:8080/ssl-status; then
-              echo "✅ SSL status endpoint is responding"
-            else
-              echo "❌ SSL status endpoint is not responding"
-              exit 1
-            fi
-
-            # Test HTTPS if certificates are available
+            # Test endpoints based on configuration
             if [ -f "$SSL_CERT_PATH" ] && [ -f "$SSL_KEY_PATH" ]; then
-              echo "Testing HTTPS endpoint..."
-              sleep 5  # Give HTTPS a moment to start
+              # Test HTTPS endpoints
+              echo "Testing HTTPS endpoints..."
+              
+              # Test health endpoint via HTTPS
               if curl -k -f https://localhost:443/health; then
-                echo "✅ HTTPS endpoint is responding"
+                echo "✅ HTTPS health endpoint is responding"
               else
-                echo "⚠️ HTTPS endpoint is not responding (this is normal if certificates are not properly mounted)"
+                echo "❌ HTTPS health endpoint is not responding"
+                exit 1
+              fi
+
+              # Test metrics endpoint via HTTPS
+              if curl -k -f https://localhost:443/metrics; then
+                echo "✅ HTTPS metrics endpoint is responding"
+              else
+                echo "❌ HTTPS metrics endpoint is not responding"
+                exit 1
+              fi
+
+              # Test config endpoint via HTTPS
+              if curl -k -f https://localhost:443/config; then
+                echo "✅ HTTPS config endpoint is responding"
+              else
+                echo "❌ HTTPS config endpoint is not responding"
+                exit 1
+              fi
+
+              # Test security headers endpoint via HTTPS
+              if curl -k -f https://localhost:443/security-headers; then
+                echo "✅ HTTPS security headers endpoint is responding"
+              else
+                echo "❌ HTTPS security headers endpoint is not responding"
+                exit 1
+              fi
+
+              # Test SSL status endpoint via HTTPS
+              if curl -k -f https://localhost:443/ssl-status; then
+                echo "✅ HTTPS SSL status endpoint is responding"
+              else
+                echo "❌ HTTPS SSL status endpoint is not responding"
+                exit 1
+              fi
+
+              # Test force HTTPS endpoint via HTTPS
+              if curl -k -f https://localhost:443/force-https-test; then
+                echo "✅ HTTPS force-https-test endpoint is responding"
+              else
+                echo "❌ HTTPS force-https-test endpoint is not responding"
+                exit 1
+              fi
+
+            else
+              # Test HTTP endpoints
+              echo "Testing HTTP endpoints..."
+              
+              # Test health endpoint via HTTP
+              if curl -f http://localhost:8080/health; then
+                echo "✅ HTTP health endpoint is responding"
+              else
+                echo "❌ HTTP health endpoint is not responding"
+                exit 1
+              fi
+
+              # Test metrics endpoint via HTTP
+              if curl -f http://localhost:8080/metrics; then
+                echo "✅ HTTP metrics endpoint is responding"
+              else
+                echo "❌ HTTP metrics endpoint is not responding"
+                exit 1
+              fi
+
+              # Test config endpoint via HTTP
+              if curl -f http://localhost:8080/config; then
+                echo "✅ HTTP config endpoint is responding"
+              else
+                echo "❌ HTTP config endpoint is not responding"
+                exit 1
+              fi
+
+              # Test security headers endpoint via HTTP
+              if curl -f http://localhost:8080/security-headers; then
+                echo "✅ HTTP security headers endpoint is responding"
+              else
+                echo "❌ HTTP security headers endpoint is not responding"
+                exit 1
+              fi
+
+              # Test SSL status endpoint via HTTP
+              if curl -f http://localhost:8080/ssl-status; then
+                echo "✅ HTTP SSL status endpoint is responding"
+              else
+                echo "❌ HTTP SSL status endpoint is not responding"
+                exit 1
               fi
             fi
 
             # Show recent logs
             echo "Recent application logs:"
             docker logs --tail 10 flask-app
+            
+            # Show container status
+            echo "Container status:"
+            docker ps | grep flask-app
           EOF
 

@@ -2,6 +2,5 @@ flask==3.0.2
 pytest==7.4.3
 pytest-cov==4.1.0
 flask-talisman==1.1.0
-pyOpenSSL==24.0.0
 certbot==2.8.0
 

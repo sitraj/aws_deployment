@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, redirect, url_for
 import os
 import logging
 import json
@@ -232,6 +232,18 @@ def ssl_status():
     
     return jsonify(ssl_info)
 
+@app.route('/force-https-test')
+def force_https_test():
+    """Test endpoint to verify HTTPS enforcement"""
+    logger.info('Force HTTPS test requested')
+    return jsonify({
+        'message': 'This endpoint should only be accessible via HTTPS',
+        'protocol': request.environ.get('wsgi.url_scheme', 'unknown'),
+        'https_enabled': HTTPS_ENABLED,
+        'force_https': FORCE_HTTPS,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
 if __name__ == '__main__':
     logger.info('Starting Flask application', extra={
         'port': app_config.PORT,
@@ -253,7 +265,7 @@ if __name__ == '__main__':
         
         app.run(
             host=app_config.HOST, 
-            port=app_config.PORT, 
+            port=443,  # Use standard HTTPS port
             debug=app_config.DEBUG,
             ssl_context=context
         )
