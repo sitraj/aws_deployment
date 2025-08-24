@@ -15,36 +15,38 @@ echo "🌐 Domain: $DOMAIN"
 echo "📧 Email: $EMAIL"
 
 # Install Docker Compose if not available
+DOCKER_COMPOSE_CMD="docker-compose"
 if ! command -v docker-compose &> /dev/null; then
     echo "🔧 Installing Docker Compose..."
     sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
     sudo chmod +x /usr/local/bin/docker-compose
     sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
     echo "✅ Docker Compose installed"
+    DOCKER_COMPOSE_CMD="/usr/local/bin/docker-compose"
 fi
 
 # Stop any existing containers
 echo "🛑 Stopping existing containers..."
-docker-compose down 2>/dev/null || true
+$DOCKER_COMPOSE_CMD down 2>/dev/null || true
 docker stop flask-app nginx-proxy certbot 2>/dev/null || true
 docker rm flask-app nginx-proxy certbot 2>/dev/null || true
 
 # Build the Flask app
 echo "🔨 Building Flask application..."
-docker-compose build flask-app
+$DOCKER_COMPOSE_CMD build flask-app
 
 # Start services without SSL first
 echo "🚀 Starting services..."
-docker-compose up -d flask-app nginx
+$DOCKER_COMPOSE_CMD up -d flask-app nginx
 
 # Wait for services to be ready
 echo "⏳ Waiting for services to start..."
 sleep 10
 
 # Check if services are running
-if ! docker-compose ps | grep -q "Up"; then
+if ! $DOCKER_COMPOSE_CMD ps | grep -q "Up"; then
     echo "❌ Services failed to start"
-    docker-compose logs
+    $DOCKER_COMPOSE_CMD logs
     exit 1
 fi
 
@@ -61,11 +63,11 @@ fi
 
 # Generate SSL certificate
 echo "🔐 Generating SSL certificate..."
-docker-compose run --rm certbot
+$DOCKER_COMPOSE_CMD run --rm certbot
 
 # Reload Nginx to use SSL certificates
 echo "🔄 Reloading Nginx with SSL..."
-docker-compose exec nginx nginx -s reload
+$DOCKER_COMPOSE_CMD exec nginx nginx -s reload
 
 # Test HTTPS access
 echo "🧪 Testing HTTPS access..."
@@ -86,8 +88,8 @@ echo "   - HTTPS: https://$DOMAIN"
 echo "   - SSL Certificate: Auto-renewing"
 echo ""
 echo "📋 Container status:"
-docker-compose ps
+$DOCKER_COMPOSE_CMD ps
 
 echo ""
 echo "📋 Recent logs:"
-docker-compose logs --tail=10
+$DOCKER_COMPOSE_CMD logs --tail=10
