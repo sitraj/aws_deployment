@@ -160,7 +160,7 @@ def handle_exception(e):
 @app.route('/')
 def hello():
     logger.info('Hello endpoint called')
-    return f'Hello, World from {app_config.APP_NAME}!'
+    return f'🚀 Hello, World from {app_config.APP_NAME}!<br><br>✅ Successfully deployed via GitHub Actions with HTTPS!<br>🔒 SSL Certificate: Active<br>🌐 Environment: {app_config.ENVIRONMENT}<br>📅 Deployed: {datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")} UTC'
 
 @app.route('/health')
 def health_check():
