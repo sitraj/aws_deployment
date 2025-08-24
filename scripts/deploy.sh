@@ -84,12 +84,12 @@ install_certbot() {
   elif command -v yum &> /dev/null; then
     echo "📦 Using yum (Amazon Linux 2)"
     sudo yum update -y
-    # Install certbot-auto directly from Let's Encrypt (most reliable for Amazon Linux 2)
-    echo "🔧 Downloading certbot-auto..."
-    wget https://dl.eff.org/certbot-auto
-    chmod a+x certbot-auto
-    sudo mv certbot-auto /usr/local/bin/certbot
-    echo "✅ Certbot installed via certbot-auto"
+    # Install Python and pip for certbot installation
+    sudo yum install -y python3 python3-pip
+    # Install certbot via pip (works on Amazon Linux 2)
+    sudo pip3 install --upgrade pip
+    sudo pip3 install certbot
+    echo "✅ Certbot installed via pip"
   elif command -v dnf &> /dev/null; then
     echo "📦 Using dnf (Fedora/RHEL 8+)"
     sudo dnf update -y
