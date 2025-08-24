@@ -89,6 +89,8 @@ install_certbot() {
     # Install certbot via pip (works on Amazon Linux 2)
     sudo pip3 install --upgrade pip
     sudo pip3 install certbot
+    # Create symlink to make certbot available in PATH
+    sudo ln -sf /usr/local/bin/certbot /usr/bin/certbot
     echo "✅ Certbot installed via pip"
   elif command -v dnf &> /dev/null; then
     echo "📦 Using dnf (Fedora/RHEL 8+)"
@@ -121,7 +123,7 @@ if [ "$DEPLOY_HTTPS" = true ] && [ "$CERTIFICATES_EXIST" = false ]; then
   echo "🔐 Attempting to generate SSL certificates..."
   
   # Install certbot if not already installed
-  if ! command -v certbot &> /dev/null; then
+  if ! command -v certbot &> /dev/null && [ ! -f "/usr/local/bin/certbot" ]; then
     echo "📦 Installing certbot..."
     if ! install_certbot; then
       echo "❌ Failed to install certbot"
@@ -133,7 +135,7 @@ if [ "$DEPLOY_HTTPS" = true ] && [ "$CERTIFICATES_EXIST" = false ]; then
   fi
 
   # Only proceed if certbot is available
-  if command -v certbot &> /dev/null; then
+  if command -v certbot &> /dev/null || [ -f "/usr/local/bin/certbot" ]; then
     # Create webroot directory for certificate verification
     sudo mkdir -p /var/www/html/.well-known/acme-challenge
     sudo chown -R www-data:www-data /var/www/html 2>/dev/null || sudo chown -R nginx:nginx /var/www/html 2>/dev/null || true
@@ -145,7 +147,9 @@ if [ "$DEPLOY_HTTPS" = true ] && [ "$CERTIFICATES_EXIST" = false ]; then
 
     # Generate SSL certificate using standalone method
     echo "🔐 Generating SSL certificate for $DOMAIN..."
-    if sudo certbot certonly --standalone --email="$EMAIL" --agree-tos --no-eff-email --domains="$DOMAIN" --non-interactive; then
+    # Use full path to certbot if available
+    CERTBOT_CMD=$(which certbot 2>/dev/null || echo "/usr/local/bin/certbot")
+    if sudo "$CERTBOT_CMD" certonly --standalone --email="$EMAIL" --agree-tos --no-eff-email --domains="$DOMAIN" --non-interactive; then
       echo "✅ SSL certificate generated successfully!"
       CERTIFICATES_EXIST=true
       
