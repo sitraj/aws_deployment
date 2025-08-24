@@ -42,14 +42,30 @@ jobs:
       - name: Deploy with automated SSL setup
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            echo "🚀 Starting automated deployment with SSL setup..."
+            
+            # Clone or update repo
+            if [ ! -d ~/app ]; then
+              echo "📥 Cloning repository..."
+              git clone https://github.com/${{ github.repository }}.git ~/app
+            else
+              echo "📥 Updating repository..."
+              cd ~/app
+              git pull origin main
+            fi
+            
             # Set environment variables for the deployment script
             export GITHUB_REPOSITORY="${{ github.repository }}"
             export DOMAIN="${{ secrets.DOMAIN }}"
             export EMAIL="${{ secrets.EMAIL }}"
             export EC2_HOST="${{ secrets.EC2_HOST }}"
             
-            # Make deployment script executable and run it
-            chmod +x ~/app/scripts/deploy.sh
-            ~/app/scripts/deploy.sh
+            # Navigate to app directory and make deployment script executable
+            cd ~/app
+            chmod +x scripts/deploy.sh
+            
+            # Run the deployment script
+            echo "🔧 Running deployment script..."
+            ./scripts/deploy.sh
           EOF
 

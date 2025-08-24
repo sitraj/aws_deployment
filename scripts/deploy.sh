@@ -7,12 +7,20 @@ set -e
 
 echo "🚀 Starting automated deployment with SSL setup..."
 
-# Clone or update repo
-if [ ! -d ~/app ]; then
-  git clone https://github.com/$GITHUB_REPOSITORY ~/app
+# Check if we're already in the app directory
+if [ ! -f "app.py" ] || [ ! -f "requirements.txt" ]; then
+  echo "📥 Repository not found in current directory, cloning..."
+  # Clone or update repo
+  if [ ! -d ~/app ]; then
+    git clone https://github.com/$GITHUB_REPOSITORY ~/app
+  fi
+  cd ~/app
+  git pull origin main
+else
+  echo "✅ Already in app directory, proceeding with deployment..."
+  # Make sure we're on the latest version
+  git pull origin main
 fi
-cd ~/app
-git pull origin main
 
 # Stop and remove existing container if it exists
 echo "🛑 Stopping existing container..."
