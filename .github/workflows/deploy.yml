@@ -62,10 +62,10 @@ jobs:
             
             # Navigate to app directory and make deployment script executable
             cd ~/app
-            chmod +x scripts/deploy-docker-compose.sh
+            chmod +x scripts/deploy-cloudflare.sh
             
             # Run the deployment script
             echo "🔧 Running deployment script..."
-            ./scripts/deploy-docker-compose.sh
+            ./scripts/deploy-cloudflare.sh
           EOF
 
