@@ -5,6 +5,11 @@ import json
 import time
 from datetime import datetime
 from werkzeug.exceptions import HTTPException
+from config import config
+
+# Get configuration based on environment
+config_name = os.environ.get('FLASK_ENV', 'production')
+app_config = config.get(config_name, config['default'])
 
 # Disable Werkzeug's default logging
 logging.getLogger('werkzeug').disabled = True
@@ -48,9 +53,10 @@ logHandler = logging.StreamHandler()
 formatter = JSONFormatter()
 logHandler.setFormatter(formatter)
 logger.addHandler(logHandler)
-logger.setLevel(logging.INFO)
+logger.setLevel(getattr(logging, app_config.LOG_LEVEL))
 
 app = Flask(__name__)
+app.config.from_object(app_config)
 
 @app.before_request
 def log_request_info():
@@ -106,33 +112,46 @@ def handle_exception(e):
 @app.route('/')
 def hello():
     logger.info('Hello endpoint called')
-    return 'Hello, World!!!'
+    return f'Hello, World from {app_config.APP_NAME}!'
 
 @app.route('/health')
 def health_check():
     logger.info('Health check requested')
-    return jsonify({
-        'status': 'healthy',
-        'service': 'flask-app',
-        'version': '1.0.0',
-        'timestamp': datetime.utcnow().isoformat()
-    })
+    if not app_config.HEALTH_CHECK_ENABLED:
+        return jsonify({
+            'status': 'disabled',
+            'message': 'Health checks are disabled'
+        }), 503
+    
+    return jsonify(app_config.get_health_response())
 
 @app.route('/metrics')
 def metrics():
     """Basic metrics endpoint"""
     logger.info('Metrics endpoint called')
+    return jsonify(app_config.get_metrics_response())
+
+@app.route('/config')
+def get_config():
+    """Get current configuration (read-only)"""
+    logger.info('Configuration requested')
     return jsonify({
-        'uptime': 'running',
-        'requests_processed': 'tracked_in_logs',
+        'app_name': app_config.APP_NAME,
+        'version': app_config.APP_VERSION,
+        'environment': app_config.ENVIRONMENT,
+        'debug': app_config.DEBUG,
+        'log_level': app_config.LOG_LEVEL,
+        'health_check_enabled': app_config.HEALTH_CHECK_ENABLED,
+        'cors_enabled': app_config.CORS_ENABLED,
         'timestamp': datetime.utcnow().isoformat()
     })
 
 if __name__ == '__main__':
     logger.info('Starting Flask application', extra={
-        'port': int(os.environ.get('PORT', 8080)),
-        'environment': os.environ.get('FLASK_ENV', 'production')
+        'port': app_config.PORT,
+        'environment': app_config.ENVIRONMENT,
+        'app_name': app_config.APP_NAME,
+        'version': app_config.APP_VERSION
     })
-    port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host=app_config.HOST, port=app_config.PORT, debug=app_config.DEBUG)
 

@@ -56,12 +56,19 @@ jobs:
             docker stop flask-app || true
             docker rm flask-app || true
 
-            # Build and run new container
+            # Build and run new container with environment variables
             echo "Building new container..."
             docker build -t flask-app .
             
-            echo "Starting new container..."
-            docker run -d --name flask-app -p 8080:8080 flask-app
+            echo "Starting new container with environment variables..."
+            docker run -d --name flask-app -p 8080:8080 \
+              -e FLASK_ENV=production \
+              -e APP_NAME=flask-app \
+              -e APP_VERSION=1.0.0 \
+              -e LOG_LEVEL=INFO \
+              -e HEALTH_CHECK_ENABLED=true \
+              -e CORS_ENABLED=false \
+              flask-app
 
             # Wait for container to start
             echo "Waiting for container to start..."
@@ -98,6 +105,15 @@ jobs:
               echo "✅ Metrics endpoint is responding"
             else
               echo "❌ Metrics endpoint is not responding"
+              exit 1
+            fi
+
+            # Test config endpoint
+            echo "Testing config endpoint..."
+            if curl -f http://localhost:8080/config; then
+              echo "✅ Config endpoint is responding"
+            else
+              echo "❌ Config endpoint is not responding"
               exit 1
             fi
 

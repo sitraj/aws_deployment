@@ -1,5 +1,12 @@
 import unittest
 import json
+import os
+
+# Set test environment variables BEFORE importing app
+os.environ['FLASK_ENV'] = 'testing'
+os.environ['APP_NAME'] = 'test-app'
+os.environ['APP_VERSION'] = '1.0.0-test'
+
 from app import app
 
 class FlaskAppTestCase(unittest.TestCase):
@@ -11,7 +18,7 @@ class FlaskAppTestCase(unittest.TestCase):
         """Test the hello endpoint"""
         response = self.app.get('/')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data.decode('utf-8'), 'Hello, World!!!')
+        self.assertIn('test-app', response.data.decode('utf-8'))
 
     def test_health_endpoint(self):
         """Test the health endpoint"""
@@ -20,8 +27,9 @@ class FlaskAppTestCase(unittest.TestCase):
         
         data = json.loads(response.data)
         self.assertEqual(data['status'], 'healthy')
-        self.assertEqual(data['service'], 'flask-app')
-        self.assertEqual(data['version'], '1.0.0')
+        self.assertEqual(data['service'], 'test-app')
+        self.assertEqual(data['version'], '1.0.0-test')
+        self.assertEqual(data['environment'], 'testing')
         self.assertIn('timestamp', data)
 
     def test_metrics_endpoint(self):
@@ -32,6 +40,23 @@ class FlaskAppTestCase(unittest.TestCase):
         data = json.loads(response.data)
         self.assertEqual(data['uptime'], 'running')
         self.assertEqual(data['requests_processed'], 'tracked_in_logs')
+        self.assertEqual(data['environment'], 'testing')
+        self.assertEqual(data['version'], '1.0.0-test')
+        self.assertIn('timestamp', data)
+
+    def test_config_endpoint(self):
+        """Test the config endpoint"""
+        response = self.app.get('/config')
+        self.assertEqual(response.status_code, 200)
+        
+        data = json.loads(response.data)
+        self.assertEqual(data['app_name'], 'test-app')
+        self.assertEqual(data['version'], '1.0.0-test')
+        self.assertEqual(data['environment'], 'testing')
+        self.assertIn('debug', data)
+        self.assertIn('log_level', data)
+        self.assertIn('health_check_enabled', data)
+        self.assertIn('cors_enabled', data)
         self.assertIn('timestamp', data)
 
     def test_nonexistent_endpoint(self):
@@ -106,6 +131,7 @@ class FlaskAppTestCase(unittest.TestCase):
             self.assertIn('status', data)
             self.assertIn('service', data)
             self.assertIn('version', data)
+            self.assertIn('environment', data)
             self.assertIn('timestamp', data)
         except json.JSONDecodeError:
             self.fail("Health endpoint should return valid JSON")
@@ -120,9 +146,30 @@ class FlaskAppTestCase(unittest.TestCase):
             self.assertIsInstance(data, dict)
             self.assertIn('uptime', data)
             self.assertIn('requests_processed', data)
+            self.assertIn('environment', data)
+            self.assertIn('version', data)
             self.assertIn('timestamp', data)
         except json.JSONDecodeError:
             self.fail("Metrics endpoint should return valid JSON")
+
+    def test_config_endpoint_structure(self):
+        """Test that config endpoint returns proper JSON structure"""
+        response = self.app.get('/config')
+        self.assertEqual(response.status_code, 200)
+        
+        try:
+            data = json.loads(response.data)
+            self.assertIsInstance(data, dict)
+            self.assertIn('app_name', data)
+            self.assertIn('version', data)
+            self.assertIn('environment', data)
+            self.assertIn('debug', data)
+            self.assertIn('log_level', data)
+            self.assertIn('health_check_enabled', data)
+            self.assertIn('cors_enabled', data)
+            self.assertIn('timestamp', data)
+        except json.JSONDecodeError:
+            self.fail("Config endpoint should return valid JSON")
 
     def test_error_response_structure(self):
         """Test that error responses have consistent structure"""
@@ -160,6 +207,7 @@ class FlaskAppTestCase(unittest.TestCase):
         self.assertEqual(data1['status'], data2['status'])
         self.assertEqual(data1['service'], data2['service'])
         self.assertEqual(data1['version'], data2['version'])
+        self.assertEqual(data1['environment'], data2['environment'])
         
         # Timestamp should be different (unless requests are very fast)
         self.assertIn('timestamp', data1)
