@@ -37,7 +37,23 @@ class FlaskAppTestCase(unittest.TestCase):
     def test_nonexistent_endpoint(self):
         """Test 404 for non-existent endpoint"""
         response = self.app.get('/nonexistent')
+        # Flask test client returns 404 for non-existent routes
         self.assertEqual(response.status_code, 404)
+
+    def test_health_endpoint_structure(self):
+        """Test that health endpoint returns proper JSON structure"""
+        response = self.app.get('/health')
+        self.assertEqual(response.status_code, 200)
+        
+        try:
+            data = json.loads(response.data)
+            self.assertIsInstance(data, dict)
+            self.assertIn('status', data)
+            self.assertIn('service', data)
+            self.assertIn('version', data)
+            self.assertIn('timestamp', data)
+        except json.JSONDecodeError:
+            self.fail("Health endpoint should return valid JSON")
 
 if __name__ == '__main__':
     unittest.main()

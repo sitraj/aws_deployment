@@ -71,20 +71,6 @@ def log_response_info(response):
     })
     return response
 
-@app.errorhandler(Exception)
-def handle_exception(e):
-    """Log exceptions with structured format"""
-    logger.error('Unhandled exception', extra={
-        'exception_type': type(e).__name__,
-        'exception_message': str(e),
-        'path': request.path,
-        'method': request.method
-    })
-    return jsonify({
-        'error': 'Internal server error',
-        'status': 'error'
-    }), 500
-
 @app.route('/')
 def hello():
     logger.info('Hello endpoint called')
